@@ -1,0 +1,241 @@
+%%%%%%%%%%%%%%%%%%%
+q1
+close all
+clear
+in = imread('test1.pgm');
+D0 = [10 20 50 80 120 150 180];
+figure(1)
+subplot(2,4,1);
+imshow(in);
+title('source data butterworth lowpass');
+for i = 1:7
+    [image,b] = filt(in,D0(i),2,0,0);
+    subplot(2,4,i+ 1);
+    imshow(image,[]);
+    title(sprintf("D0 = %d,N = 2 功率谱比 %0.4f",D0(i),b));
+end
+
+clear
+in = imread('test2.tif ');
+D0 = [10 20 50 80 120 150 180];
+figure(2)
+subplot(2,4,1);
+imshow(in);
+title('source data butterworth lowpass');
+for i = 1:7
+    [image,b] = filt(in,D0(i),2,0,0);
+    subplot(2,4,i+ 1);
+    imshow(image,[]);
+    title(sprintf("D0 = %d,N = 2 功率谱比 %0.4f",D0(i),b));
+end
+
+clear
+in = imread('test1.pgm');
+D0 = [10 20 50 80 120 150 180];
+figure(3)
+subplot(2,4,1);
+imshow(in);
+title('source data gauss lowpass');
+for i = 1:7
+    [image,b] = filt(in,D0(i),2,1,0);
+    subplot(2,4,i+ 1);
+    imshow(image,[]);
+    title(sprintf("D0 = %d,N = 2 功率谱比 %0.4f",D0(i),b));
+end
+
+clear
+in = imread('test2.tif');
+D0 = [10 20 50 80 120 150 180];
+figure(4)
+subplot(2,4,1);
+imshow(in);
+title('source data gauss lowpass');
+for i = 1:7
+    [image,b] = filt(in,D0(i),2,1,0);
+    subplot(2,4,i+ 1);
+    imshow(image,[]);
+    title(sprintf("D0 = %d,N = 2 功率谱比 %0.4f",D0(i),b));
+end
+
+
+function [output_image,b] = filt(input_image,D0,N,method,ch)
+%UNTITLED 此处显示有关此函数的摘要
+%  method 0 butterworth 1 gaussian
+input = double(input_image);
+ma = max(input(:));
+
+if ( method ==2)
+    input = input ./ma;
+end
+
+[m n] = size(input);
+input1 = zeros(2*m,2*n);
+
+for i = 1:m
+    for j = 1:n
+        input1(i,j) = input(i,j) * (-1)^(i + j);
+    end
+end
+
+  F1 = fft2(input1);
+
+fi = zeros(2*m,2*n);
+t1 = D0^(2*N);
+s = 0;
+for i =1:2*m
+    for j = 1:2*n
+        t2 = (i - (m+1))^2 + (j - (n+1))^2;
+        if (ch == 0) %lowpass
+            
+        if (method == 0)      %butterworth
+        fi(i,j) = 1 / (1 + t2^N/t1);
+        elseif(method == 1)
+            fi(i,j) = exp( - t2 / 2 / D0^2);
+        end
+        elseif(ch == 1) %highpass
+            
+            if (method == 0) %butterworth
+            fi(i,j) = 1 / (1 + t1/t2^N);
+             elseif(method == 1)%gauss
+            fi(i,j) = 1- exp( - t2 / 2 / D0^2);
+            elseif(method == 2 || method == 3)%laplace
+              fi(i,j) = - 4 * pi^2 * t2;   
+            end   
+            
+        end
+        if (t2 < D0^2)
+            s = s + abs(F1(i,j));
+        end
+    end
+end
+
+ma = max(abs(fi(:)));
+if ( method == 2 || method == 3)
+    fi = fi ./abs(ma);  
+end
+
+if ( method == 3 )
+    fi = ones(2*m,2*n) + fi;  
+end
+
+
+b = s/sum(sum(abs(F1),1),2);
+fi = real(ifft2(F1 .* fi));
+t3 = fi(1:m,1:n);
+
+
+
+for i = 1:m
+    for j = 1:n
+        t3(i,j) = t3(i,j) * (-1)^(i + j);
+    end
+end
+
+output_image = (t3);
+% mx = max(t3(:));
+% mn = min(t3(:));
+% t4 = mx-mn;
+% 
+% for i = 1 : m
+%     for j = 1 : n
+%         output_image(i,j) = (255 * (t3(i, j)- mn) / t4);
+%     end
+% end
+
+end
+%%%%%%%%%%%%%%%%%%%%%%
+q2
+
+clear
+in = imread('test3_corrupt.pgm');
+D0 = [10 20 50 80 120 150 180];
+figure(1)
+subplot(2,4,1);
+imshow(in);
+title('source data butterworth highpass');
+for i = 1:7
+    [image,b] = filt(in,D0(i),2,0,1);
+    subplot(2,4,i+ 1);
+    imshow(image,[]);
+    title(sprintf("D0 = %d,N = 2 功率谱比 %0.4f",D0(i),1-b));
+end
+
+
+in = imread('test4 copy.bmp');
+figure(2)
+subplot(2,4,1);
+imshow(in);
+title('source data butterworth highpass');
+for i = 1:7
+    [image,b] = filt(in,D0(i),2,0,1);
+    subplot(2,4,i+ 1);
+    imshow(image,[]);
+    title(sprintf("D0 = %d,N = 2 功率谱比 %0.4f",D0(i),1-b));
+end
+
+
+in = imread('test3_corrupt.pgm');
+figure(3)
+subplot(2,4,1);
+imshow(in);
+title('source data gauss highpass');
+for i = 1:7
+    [image,b] = filt(in,D0(i),2,1,1);
+    subplot(2,4,i+ 1);
+    imshow(image,[]);
+    title(sprintf("D0 = %d,N = 2 功率谱比 %0.4f",D0(i),1-b));
+end
+
+
+in = imread('test4 copy.bmp');
+figure(4)
+subplot(2,4,1);
+imshow(in);
+title('source data gauss highpass');
+for i = 1:7
+    [image,b] = filt(in,D0(i),2,1,1);
+    subplot(2,4,i+ 1);
+    imshow(image,[]);
+    title(sprintf("D0 = %d,N = 2 功率谱比 %0.4f",D0(i),1-b));
+end
+
+
+%%%%%%%%%%%%%%%%%
+q3
+
+clear
+close all
+in = imread('test3_corrupt.pgm');
+g = ["butterwoth","gauss","laplace"];
+D0 = 40;
+figure(1)
+subplot(2,4,1);
+imshow(in);
+title('laplace highpass');
+    image = filt(in,D0,2,2,1);
+    subplot(1,2,1);
+    imshow(image,[]);
+    title('laplace highpass');
+    
+    image = filt(in,D0,2,3,1);
+    subplot(1,2,2);
+    imshow(image,[]);
+    title('unmask highpass');
+    
+    
+    clear
+in = imread('test4 copy.bmp');
+D0 = 40;
+figure(2)
+subplot(2,4,1);
+imshow(in);
+title('laplace highpass');
+    image = filt(in,D0,2,2,1);
+    subplot(1,2,1);
+    imshow(image,[]);
+    title('laplace highpass');
+    
+    image = filt(in,D0,2,3,1);
+    subplot(1,2,2);
+    imshow(image,[]);
+    title('unmask highpass');
